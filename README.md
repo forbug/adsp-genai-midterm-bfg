@@ -70,3 +70,9 @@ If you decide to use VSCode, these extensions will make your experience much eas
 #### Environment Variables
 
 - Copy `.env.example` to `.env` and fill in any required secrets or configuration values.
+
+## Running the Basic Graph
+
+To run the basic graph, use the notebook stored in `notebooks/basic_rag_demo.ipynb`. 
+
+**Important**: Make sure that you are using the `.venv` created from the `poetry env activate` command as your kernel.
