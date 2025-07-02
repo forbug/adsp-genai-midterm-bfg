@@ -1,0 +1,29 @@
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "dsi-rag-qa"
+version = "0.1.0"
+description = "Generative AI Principles Midterm Project Summer 2025"
+authors = [
+    "Gretchen Forbush <forbug@uchicago.edu>",
+    "Fletcher Lin <dinflin@outlook.com>",
+    "Brianna Ngo <bngo@chicagobooth.edu>"
+]
+readme = "README.md"
+packages = [
+    {include = "dsi_rag_qa", from = "src"}
+]
+
+[tool.poetry.dependencies]
+python = '~3.11.11'
+beautifulsoup4 = "^4.13.4"
+langchain-unstructured = "^0.1.6"
+langchain-community = "^0.3.26"
+langchain-text-splitters = "^0.3.8"
+lxml = "^6.0.0"
+langgraph = "^0.5.0"
+langchain-ollama = "^0.3.3"
+faiss-cpu = "^1.11.0"
+
