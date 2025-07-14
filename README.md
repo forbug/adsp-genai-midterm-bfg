@@ -78,3 +78,8 @@ To run the streamlit app in a browser, activate your poetry environment and run 
 ```bash
 streamlit run ui/app.py
 ```
+## Running the Basic Graph
+
+To run the basic graph, use the notebook stored in `notebooks/basic_rag_demo.ipynb`. 
+
+**Important**: Make sure that you are using the `.venv` created from the `poetry env activate` command as your kernel.
