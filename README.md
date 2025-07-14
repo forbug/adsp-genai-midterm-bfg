@@ -70,3 +70,11 @@ If you decide to use VSCode, these extensions will make your experience much eas
 #### Environment Variables
 
 - Copy `.env.example` to `.env` and fill in any required secrets or configuration values.
+
+## Running the App via Browser
+
+To run the streamlit app in a browser, activate your poetry environment and run the following command:
+
+```bash
+streamlit run ui/app.py
+```

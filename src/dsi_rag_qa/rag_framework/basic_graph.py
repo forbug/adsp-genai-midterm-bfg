@@ -26,7 +26,7 @@ def generate_response(state: GraphState) -> GraphState:
     """Generate a response based on the retrieved documents."""
     response = state['response_chain'].invoke({
         "query": state['query'],
-        "context": [doc.page_content for doc in state['source_documents']],
+        "context": [f"{doc.page_content} ({doc.metadata['source']})" for doc in state['source_documents']],
     })
     state['response'] = response
     return state

@@ -69,12 +69,21 @@ css_md = """
         text-decoration: underline;
     }
 
-    /* Hero Section */
-    .st-key-hero {
+    /* Question Box Section */
+    .st-key-qb {
         background-color: rgba(128, 0, 0, 0.8);
         padding: 2rem;
         max-width: 50%;
         border-radius: 5px;
+        color: #ffffff;
+    }
+
+    /* Response Box Section */
+    .st-key-rb {
+        background-color: rgba(128, 0, 0, 0.8);
+        padding: 2rem;
+        border-radius: 5px;
+        color: #ffffff;
     }
 
     /* Chat Section */
@@ -144,9 +153,9 @@ with col2:
     """, unsafe_allow_html=True)
 
 
-# Hero Section with Chat
+# Question Section with Chat
 with col1:
-    with st.container(key="hero"):
+    with st.container(key="qb"):
         st.title("Elevate Your Expertise in Data Science")
         st.write("""
         The University of Chicago's MS in Applied Data Science program equips you with in-demand
@@ -166,10 +175,12 @@ with col2:
             with st.spinner("Finding the answer..."):
                 try:
                     response = get_response(workflow, vector_retriever, response_chain, question)
-                    st.success(response['response'])
+                    with st.container(key="rb"):
+                        st.write(response["response"].replace("$", "\$"))
                     st.subheader("Sources:")
-                    for source in response['source_documents']:
-                        st.markdown(f"- [{source.metadata['source']}]({source.metadata['source']})")
+                    unique_sources = list(set([source.metadata['source'] for source in response['source_documents']]))
+                    for source in unique_sources:
+                        st.markdown(f"- [{source}]({source})")
                 except Exception as e:
                     st.error(f"An error occurred while getting the answer: {e}")
         else:
