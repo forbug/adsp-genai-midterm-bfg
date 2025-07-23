@@ -50,7 +50,7 @@ If you decide to use VSCode, these extensions will make your experience much eas
    ```
 3. Clone the repository:
    ```bash
-   git clone git@github.com:ConvoAI-Capstone-SpSu2025/currensee.git
+   git clone git@github.com:forbug/adsp-genai-midterm-bfg.git
    ```
 
 #### Configure the Python Environment
