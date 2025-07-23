@@ -23,7 +23,7 @@ Below are the recommended operating-system-specific instructions for:
 3. Install [poetry](https://python-poetry.org/docs/#installation)
    * IMPORTANT: You may need to add your `~/.local/bin` folder to your path if you are on a Windows or Mac machine. For Mac, see [this article](https://medium.com/@B-Treftz/macos-adding-a-directory-to-your-path-fe7f19edd2f7).
    * Run `poetry --version` to validate that the installation was successful.
-4. (optional) Set up [Ollama](https://ollama.com/)
+4. (required) Set up [Ollama](https://ollama.com/)
     * Ollama allows you to run local open-source models locally. You can interact with it either through the UI or through your terminal once you have downloaded it from the link above. 
     * Once you have the UI downloaded, you can download models (see the list of available models [here](https://ollama.com/search)) by running `ollama pull <model-name>` in the UI or in your terminal.
     * Then, you can use a model's name in any Ollama-related function from langchain to use the model that you have downloaded.
@@ -71,6 +71,25 @@ If you decide to use VSCode, these extensions will make your experience much eas
 
 - Copy `.env.example` to `.env` and fill in any required secrets or configuration values.
 
+#### Configure the Ollama
+
+1. With the Ollama package installed either in the configured environment, virtual environment, your global environment, or local environment for particular folder, make sure the particular models are downloaded.
+```bash
+ollama pull <name-of-model>
+```
+In particular, the current model seen in `src/dsi_rag_qa/utils/embedding_utils.py` and `src/dsi_rag_qa/utils/prompt_utils.py` are mistral and bge-m3, which means the following code should be run.
+```bash
+ollama pull bge-m3
+ollama pull mistral
+```
+
+2. After the download of the model, the Ollama need to be ensured that it is running. To start Ollama, do the following simultaneously while running the actual application in separate terminal instances.
+```bash
+ollama serve
+```
+To make sure that Ollama is running, you can visit http://localhost:11434/ in a browser which should show a response from Ollama. With the Google Chrome web browser installed, you may get the statement "Ollama is running".
+
+
 ## Running the App via Browser
 
 To run the streamlit app in a browser, activate your poetry environment and run the following command:
@@ -78,6 +97,13 @@ To run the streamlit app in a browser, activate your poetry environment and run 
 ```bash
 streamlit run ui/app.py
 ```
+**Note:** The command above would work assuming that all the dependencies are completely installed in the local default environment. You may run into errors regarding different python version required if proper dependencies are not found. An alternative run could be done if virtual environment is properly configured with poetry.
+
+```bash
+poetry run streamlit run ui/app.py
+```
+**Note:** This is based off from having virtual environment configured per code shown above in the section Configure the Python Environment where poetry is used to configure the python environment. This could avoid having errors relating to python package version mismatch.
+
 ## Running the Basic Graph
 
 To run the basic graph, use the notebook stored in `notebooks/basic_rag_demo.ipynb`. 
