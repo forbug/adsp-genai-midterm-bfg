@@ -9,7 +9,8 @@ description = "Generative AI Principles Midterm Project Summer 2025"
 authors = [
     "Gretchen Forbush <forbug@uchicago.edu>",
     "Fletcher Lin <dinflin@outlook.com>",
-    "Brianna Ngo <bngo@chicagobooth.edu>"
+    "Brianna Ngo <bngo@chicagobooth.edu>",
+    "Vanessa Atwood <vanessaleal@uchicago.edu>"
 ]
 readme = "README.md"
 packages = [
