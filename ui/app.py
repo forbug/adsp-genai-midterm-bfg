@@ -13,8 +13,13 @@ from dsi_rag_qa.rag_framework.basic_graph import create_basic_workflow
 from dsi_rag_qa.utils.data_ingestion_utils import load_docs_from_url, BASE_URL
 from dsi_rag_qa.utils.embedding_utils import create_faiss_retriever
 from dsi_rag_qa.utils.prompt_utils import base_system_prompt, create_response_chain
-
+from langchain.callbacks.tracers.langchain import LangChainTracer
 nest_asyncio.apply()
+
+from dotenv import load_dotenv
+# Load environment variables
+# Ensure you have a .env file with the necessary variables
+load_dotenv()
 
 st.set_page_config(layout="wide")
 
@@ -23,6 +28,9 @@ def get_base64_of_bin_file(bin_file):
     with open(bin_file, 'rb') as f:
         data = f.read()
     return base64.b64encode(data).decode()
+
+tracer = LangChainTracer(project_name="adsp-genai-midterm",  # Or omit to use "default"
+                         )
 
 css_md = """
 <style>
@@ -121,7 +129,7 @@ def get_response(workflow, vector_retriever, response_chain, query):
         "vector_retriever": vector_retriever,
         "response_chain": response_chain,
     }
-    response = workflow.invoke(start_state)
+    response = workflow.invoke(start_state, config={"callbacks": [tracer]})
     return response
 
 # Load the RAG pipeline
