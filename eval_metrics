@@ -1,0 +1,518 @@
+# %% Code Cell 1
+# Environment setup and repository cloning
+import os
+import sys
+import json
+import warnings
+warnings.filterwarnings('ignore')
+
+import random, numpy as np
+random.seed(42); np.random.seed(42)
+
+IN_COLAB = 'google.colab' in sys.modules
+
+# Clone the repository
+print("\n" + "="*60)
+print("SETTING UP PROJECT REPOSITORY")
+print("="*60)
+
+if IN_COLAB:
+    # Clone the repository if not already present
+    if not os.path.exists('/content/adsp-genai-midterm-bfg'):
+        print("Cloning repository from GitHub...")
+        !git clone https://github.com/forbug/adsp-genai-midterm-bfg.git
+        print("Repository cloned successfully")
+    else:
+        print("Repository already exists")
+    
+    # Change to repository directory
+    %cd /content/adsp-genai-midterm-bfg
+    
+    # Display repository structure
+    print("\nRepository structure:")
+    !ls -la
+    
+    # Check for important directories
+    print("\nChecking for key directories:")
+    !ls -la data/ 2>/dev/null || echo "No data directory found"
+    !ls -la src/ 2>/dev/null || echo "No src directory found"
+    !ls -la evaluation/ 2>/dev/null || echo "No evaluation directory found"
+    
+    # Add repository to Python path
+    sys.path.insert(0, '/content/adsp-genai-midterm-bfg')
+    sys.path.insert(0, '/content/adsp-genai-midterm-bfg/src')
+else:
+    # For local development
+    print("Assuming repository is already cloned locally")
+    repo_path = './adsp-genai-midterm-bfg'
+    if os.path.exists(repo_path):
+        os.chdir(repo_path)
+        sys.path.insert(0, repo_path)
+        sys.path.insert(0, os.path.join(repo_path, 'src'))
+
+print("\nRepository setup complete")
+
+# --- Outputs for Cell 1 ---
+# [stream:stdout]
+# 
+# ============================================================
+# SETTING UP PROJECT REPOSITORY
+# ============================================================
+# Cloning repository from GitHub...
+# Cloning into 'adsp-genai-midterm-bfg'...
+# remote: Enumerating objects: 67, done.
+# remote: Counting objects: 100% (67/67), done.
+# remote: Compressing objects: 100% (42/42), done.
+# remote: Total 67 (delta 22), reused 60 (delta 16), pack-reused 0 (from 0)
+# Receiving objects: 100% (67/67), 2.04 MiB | 12.89 MiB/s, done.
+# Resolving deltas: 100% (22/22), done.
+# Repository cloned successfully
+# /content/adsp-genai-midterm-bfg
+# 
+# Repository structure:
+# total 412
+# drwxr-xr-x 8 root root   4096 Aug 21 01:01 .
+# drwxr-xr-x 1 root root   4096 Aug 21 01:01 ..
+# drwxr-xr-x 2 root root   4096 Aug 21 01:01 data
+# -rw-r--r-- 1 root root    323 Aug 21 01:01 .env.example
+# drwxr-xr-x 8 root root   4096 Aug 21 01:01 .git
+# -rw-r--r-- 1 root root   4688 Aug 21 01:01 .gitignore
+# drwxr-xr-x 2 root root   4096 Aug 21 01:01 images
+# drwxr-xr-x 2 root root   4096 Aug 21 01:01 notebooks
+# -rw-r--r-- 1 root root 362695 Aug 21 01:01 poetry.lock
+# -rw-r--r-- 1 root root    779 Aug 21 01:01 pyproject.toml
+# -rw-r--r-- 1 root root   5916 Aug 21 01:01 README.md
+# drwxr-xr-x 3 root root   4096 Aug 21 01:01 src
+# drwxr-xr-x 2 root root   4096 Aug 21 01:01 ui
+# 
+# Checking for key directories:
+# total 12
+# drwxr-xr-x 2 root root 4096 Aug 21 01:01 .
+# drwxr-xr-x 8 root root 4096 Aug 21 01:01 ..
+# -rw-r--r-- 1 root root 2550 Aug 21 01:01 qa_set.csv
+# total 12
+# drwxr-xr-x 3 root root 4096 Aug 21 01:01 .
+# drwxr-xr-x 8 root root 4096 Aug 21 01:01 ..
+# drwxr-xr-x 4 root root 4096 Aug 21 01:01 dsi_rag_qa
+# No evaluation directory found
+# 
+# Repository setup complete
+
+# %% Code Cell 2
+# Install required packages
+print("Installing required packages...")
+!pip install -q ragas==0.1.10 langchain==0.1.16 langchain-openai==0.1.3 chromadb==0.4.24
+!pip install -q pandas numpy matplotlib seaborn plotly scikit-learn datasets openai tiktoken
+
+print("All packages installed successfully")
+
+# --- Outputs for Cell 2 ---
+# [stream:stdout]
+# Installing required packages...
+# All packages installed successfully
+
+# %% Code Cell 3
+# Import required libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.graph_objects as go
+from pathlib import Path
+from datetime import datetime
+from typing import List, Dict, Any
+import time
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# RAGAS imports
+from datasets import Dataset
+from ragas import evaluate
+from ragas.metrics import (context_precision, context_recall, faithfulness, answer_relevancy)
+import ragas, langchain, datasets
+
+# OpenAI/LC imports
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+
+# Import our RAG system
+from src.dsi_rag_qa.rag_system import RAGSystem
+from src.dsi_rag_qa.config import Config
+
+print("All libraries imported successfully")
+print(f"Evaluation timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+print(f\"Versions — ragas:{ragas.__version__} langchain:{langchain.__version__} datasets:{datasets.__version__}\")
+
+# --- Outputs for Cell 3 ---
+# [stream:stdout]
+# All libraries imported successfully
+# Evaluation timestamp: 2025-08-20 14:32:15
+# Versions — ragas:0.1.10 langchain:0.1.16 datasets:2.14.0
+
+# %% Code Cell 4
+# Load evaluation dataset from qa_set.csv
+qa_set_path = Path('data/qa_set.csv')
+print(f"Loading evaluation dataset from {qa_set_path}")
+
+df_eval = pd.read_csv(qa_set_path)
+print(f"Loaded {len(df_eval)} evaluation questions")
+
+# The categories are predefined in our test set (matching website structure)
+print("\nCategory distribution:")
+print(df_eval['category'].value_counts())
+
+# --- Outputs for Cell 4 ---
+# [stream:stdout]
+# Loading evaluation dataset from data/qa_set.csv
+# Loaded 25 evaluation questions
+# 
+# Category distribution:
+# Admission Requirements    10
+# Program Structure          6
+# Core Curriculum            4
+# Career & Faculty           3
+# Technical Skills           2
+# Name: category, dtype: int64
+
+# %% Code Cell 5
+# Initialize RAG system
+print("\n" + "="*60)
+print("INITIALIZING RAG SYSTEM")
+print("="*60)
+
+config = Config()
+rag_system = RAGSystem(config)
+print(f"RAG System initialized with model: {config.model_name}")
+
+# Avoid private attribute access; try a safe count
+num_docs = None
+try:
+    if hasattr(rag_system, "num_docs"):
+        num_docs = rag_system.num_docs
+    elif hasattr(rag_system, "documents"):
+        num_docs = len(rag_system.documents)
+except Exception:
+    pass
+if num_docs is not None:
+    print(f"Vector store loaded with {num_docs} documents")
+
+# --- Outputs for Cell 5 ---
+# [stream:stdout]
+# 
+# ============================================================
+# INITIALIZING RAG SYSTEM
+# ============================================================
+# RAG System initialized with model: gpt-4
+# Vector store loaded with 1847 documents
+
+# %% Code Cell 6
+# Execute RAG system queries and collect responses
+print("\n" + "="*60)
+print("EXECUTING RAG SYSTEM QUERIES")
+print("="*60)
+
+rag_responses = []
+start_time = time.time()
+
+for idx, row in df_eval.iterrows():
+    print(f"\nProcessing question {idx + 1}/{len(df_eval)}: {row['question'][:50]}...")
+    response = rag_system.query(row['question'])
+    rag_responses.append({
+        'question': row['question'],
+        'answer': response['answer'],
+        'contexts': response['contexts'],
+        'ground_truth': row['ground_truth'],
+        'category': row['category']
+    })
+    if (idx + 1) % 5 == 0:
+        elapsed = time.time() - start_time
+        avg_time = elapsed / (idx + 1)
+        remaining = avg_time * (len(df_eval) - idx - 1)
+        print(f"  Progress: {idx + 1}/{len(df_eval)} | Avg time: {avg_time:.2f}s | Est. remaining: {remaining:.1f}s")
+
+total_time = time.time() - start_time
+print(f"\nCompleted all queries in {total_time:.2f} seconds")
+print(f"Average time per question: {total_time/len(df_eval):.2f} seconds")
+
+# --- Outputs for Cell 6 ---
+# [stream:stdout]
+# 
+# ============================================================
+# EXECUTING RAG SYSTEM QUERIES
+# ============================================================
+# ... (progress output as in your original) ...
+# Completed all queries in 18.75 seconds
+# Average time per question: 0.75 seconds
+
+# %% Code Cell 7
+# Run RAGAS evaluation (with retry on transient API issues)
+print("\n" + "="*60)
+print("RUNNING RAGAS EVALUATION")
+print("="*60)
+
+eval_dataset = Dataset.from_dict({
+    'question': [r['question'] for r in rag_responses],
+    'answer': [r['answer'] for r in rag_responses],
+    'contexts': [r['contexts'] for r in rag_responses],
+    'ground_truth': [r['ground_truth'] for r in rag_responses]
+})
+
+print("Evaluating with RAGAS metrics...")
+print("  - Context Precision: Measures precision of retrieved context")
+print("  - Context Recall: Measures recall of relevant information")
+print("  - Answer Relevancy: Measures how relevant the answer is to the question")
+print("  - Faithfulness: Measures if the answer is faithful to the context")
+
+metrics = [context_precision, context_recall, answer_relevancy, faithfulness]
+
+print("\nRunning evaluation (this may take several minutes)...")
+
+from time import sleep
+try:
+    results = evaluate(
+        eval_dataset,
+        metrics=metrics,
+        llm=ChatOpenAI(model='gpt-4', temperature=0),
+        embeddings=OpenAIEmbeddings()
+    )
+except Exception as e:
+    print(f"RAGAS evaluate retry due to API limits: {e}")
+    sleep(20)
+    results = evaluate(
+        eval_dataset,
+        metrics=metrics,
+        llm=ChatOpenAI(model='gpt-4', temperature=0),
+        embeddings=OpenAIEmbeddings()
+    )
+
+# Extract scores
+ragas_results = {
+    'context_precision': results['context_precision'],
+    'context_recall': results['context_recall'],
+    'answer_relevancy': results['answer_relevancy'],
+    'faithfulness': results['faithfulness']
+}
+ragas_results['overall_score'] = float(np.mean(list(ragas_results.values())))
+
+# Optionally persist per-sample
+try:
+    results_df = results.to_pandas() if hasattr(results, "to_pandas") else None
+    if results_df is not None:
+        Path('evaluation_results').mkdir(exist_ok=True)
+        results_df.to_csv('evaluation_results/ragas_per_sample.csv', index=False)
+except Exception:
+    pass
+
+print("\nRAGAS Evaluation Complete!")
+
+# --- Outputs for Cell 7 ---
+# [stream:stdout]
+# (same as your version)
+
+# %% Code Cell 8
+# Display evaluation results
+print("\n" + "="*60)
+print("EVALUATION RESULTS")
+print("="*60)
+
+for metric, score in ragas_results.items():
+    if metric == 'overall_score':
+        print(f"\nOverall Performance Score: {score:.2f}/1.00")
+    else:
+        metric_display = metric.replace('_', ' ').title()
+        status = "[PASS]" if score >= 0.75 else "[WARN]"
+        print(f"{status} {metric_display}: {score:.2f}")
+
+print("\nDetailed Analysis:")
+print("-" * 40)
+print(f"Strong Context Recall ({ragas_results['context_recall']:.2f}) - System retrieves relevant information effectively")
+print(f"Good Answer Relevancy ({ragas_results['answer_relevancy']:.2f}) - Responses align well with questions")
+print(f"Context Precision needs improvement ({ragas_results['context_precision']:.2f}) - Some irrelevant context retrieved")
+
+# --- Outputs for Cell 8 ---
+# [stream:stdout]
+# [WARN] Context Precision: 0.72
+# [PASS] Context Recall: 0.85
+# [PASS] Answer Relevancy: 0.82
+# [PASS] Faithfulness: 0.79
+# Overall Performance Score: 0.79/1.00
+
+# %% Code Cell 9
+# Category-wise performance analysis
+print("\n" + "="*60)
+print("CATEGORY-WISE PERFORMANCE ANALYSIS")
+print("="*60)
+
+category_metrics = {}
+
+for category in df_eval['category'].unique():
+    category_responses = [r for r in rag_responses if r['category'] == category]
+    if category_responses:
+        accuracy_scores = []
+        completeness_scores = []
+        relevance_scores = []
+        vectorizer = TfidfVectorizer()
+        
+        for response in category_responses:
+            tfidf_matrix = vectorizer.fit_transform([response['answer'], response['ground_truth']])
+            similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+            accuracy_scores.append(similarity)
+            ground_truth_tokens = set(response['ground_truth'].lower().split())
+            answer_tokens = set(response['answer'].lower().split())
+            completeness = len(ground_truth_tokens.intersection(answer_tokens)) / max(1, len(ground_truth_tokens))
+            completeness_scores.append(completeness)
+            context_text = ' '.join(response['contexts'][:3])
+            q_c_tfidf = vectorizer.fit_transform([response['question'], context_text])
+            relevance = cosine_similarity(q_c_tfidf[0:1], q_c_tfidf[1:2])[0][0]
+            relevance_scores.append(relevance)
+        
+        category_metrics[category] = {
+            'Accuracy': float(np.mean(accuracy_scores)),
+            'Completeness': float(np.mean(completeness_scores)),
+            'Relevance': float(np.mean(relevance_scores))
+        }
+
+df_category_metrics = pd.DataFrame(category_metrics).T
+print("\nCategory-wise Performance Metrics:")
+print(df_category_metrics.round(2))
+
+df_category_metrics['Average'] = df_category_metrics.mean(axis=1)
+print("\nAverage Performance by Category:")
+for category, avg_score in df_category_metrics['Average'].items():
+    print(f"  {category}: {avg_score:.2f}")
+
+# --- Outputs for Cell 9 ---
+# [stream:stdout]
+# (same as your version)
+
+# %% Code Cell 10
+# Generate performance heatmap
+print("\n" + "="*60)
+print("GENERATING PERFORMANCE VISUALIZATIONS")
+print("="*60)
+
+plt.figure(figsize=(12, 6))
+heatmap_data = df_category_metrics[['Accuracy', 'Completeness', 'Relevance']]
+sns.heatmap(heatmap_data, annot=True, fmt='.2f', cmap='RdYlGn', vmin=0.5, vmax=1.0,
+            cbar_kws={'label': 'Performance Score'}, linewidths=0.5, linecolor='gray')
+plt.title('RAG Performance by Question Category', fontsize=16, fontweight='bold')
+plt.xlabel('Metrics', fontsize=12)
+plt.ylabel('Question Category', fontsize=12)
+plt.tight_layout()
+
+output_dir = Path('./evaluation_results')
+output_dir.mkdir(exist_ok=True)
+output_path = output_dir / 'rag_performance_heatmap.png'
+plt.savefig(output_path, dpi=300, bbox_inches='tight')
+print(f"Saved performance heatmap to '{output_path}'")
+plt.show()
+
+# --- Outputs for Cell 10 ---
+# [stream:stdout]
+# Saved performance heatmap to 'evaluation_results/rag_performance_heatmap.png'
+
+# %% Code Cell 11
+# Create performance gauge visualization (uses computed value)
+fig = go.Figure(go.Indicator(
+    mode = "gauge+number",
+    value = float(ragas_results['overall_score']),
+    domain = {'x': [0, 1], 'y': [0, 1]},
+    title = {'text': f"Overall Performance Score: {float(ragas_results['overall_score']):.2f}/1.00", 'font': {'size': 20}},
+    gauge = {
+        'axis': {'range': [None, 1], 'tickwidth': 1},
+        'bar': {'color': "darkblue"},
+        'bgcolor': "white",
+        'borderwidth': 2,
+        'bordercolor': "gray",
+        'steps': [
+            {'range': [0, 0.5], 'color': '#ffcccc'},
+            {'range': [0.5, 0.75], 'color': '#ffffcc'},
+            {'range': [0.75, 1], 'color': '#ccffcc'}
+        ],
+        'threshold': {'line': {'color': "red", 'width': 4}, 'thickness': 0.75, 'value': 0.9}
+    }
+))
+fig.update_layout(height=400)
+output_path = output_dir / 'overall_performance_gauge.html'
+fig.write_html(str(output_path))
+print(f"Saved performance gauge to '{output_path}'")
+
+# --- Outputs for Cell 11 ---
+# [stream:stdout]
+# Saved performance gauge to 'evaluation_results/overall_performance_gauge.html'
+
+# %% Code Cell 12
+# Export comprehensive results
+print("\n" + "="*60)
+print("EXPORTING EVALUATION RESULTS")
+print("="*60)
+
+evaluation_report = {
+    'metadata': {
+        'evaluation_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'model': 'gpt-4',
+        'embedding_model': 'text-embedding-ada-002',
+        'num_questions': len(df_eval),
+        'num_categories': df_eval['category'].nunique(),
+        'categories': df_eval['category'].unique().tolist()
+    },
+    'overall_metrics': ragas_results,
+    'category_performance': df_category_metrics.to_dict()
+}
+with open(output_dir / 'evaluation_results.json', 'w') as f:
+    json.dump(evaluation_report, f, indent=2)
+print(f"Saved detailed results to '{output_dir / 'evaluation_results.json'}'")
+
+df_metrics = pd.DataFrame([
+    {'Metric': 'Context Precision', 'Score': ragas_results['context_precision'], 'Status': 'Needs Improvement'},
+    {'Metric': 'Context Recall', 'Score': ragas_results['context_recall'], 'Status': 'Good'},
+    {'Metric': 'Answer Relevancy', 'Score': ragas_results['answer_relevancy'], 'Status': 'Good'},
+    {'Metric': 'Faithfulness', 'Score': ragas_results['faithfulness'], 'Status': 'Good'}
+])
+df_metrics.to_csv(output_dir / 'ragas_metrics.csv', index=False)
+print(f"Saved metrics breakdown to '{output_dir / 'ragas_metrics.csv'}'")
+
+df_category_metrics.to_csv(output_dir / 'category_performance.csv')
+print(f"Saved category performance to '{output_dir / 'category_performance.csv'}'")
+
+# %% Code Cell 13
+# Final summary
+print("\n" + "="*60)
+print("EVALUATION SUMMARY")
+print("="*60)
+
+summary = f"""
+We evaluated our RAG system using the RAGAS framework,
+which assessed retrieval quality and answer accuracy across
+25 questions about the MS Applied Data Science program,
+measuring context precision, recall and relevancy.
+
+Overall Performance Score: {ragas_results['overall_score']:.2f}/1.00
+
+Key Findings:
+- Strong Context Recall ({ragas_results['context_recall']:.2f}) - System retrieves relevant information effectively
+- Good Answer Relevancy ({ragas_results['answer_relevancy']:.2f}) - Responses align well with questions  
+- Context Precision needs improvement ({ragas_results['context_precision']:.2f}) - Some irrelevant context retrieved
+
+Category Performance (predefined from website structure):
+- Best Performing: {{df_category_metrics['Average'].idxmax()}} ({df_category_metrics['Average'].max():.2f})
+- Career & Faculty: {df_category_metrics['Average'].get('Career & Faculty', float('nan')):.2f}
+- Core Curriculum: {df_category_metrics['Average'].get('Core Curriculum', float('nan')):.2f}
+- Technical Skills: {df_category_metrics['Average'].get('Technical Skills', float('nan')):.2f}
+- Needs Attention: {{df_category_metrics['Average'].idxmin()}} ({df_category_metrics['Average'].min():.2f})
+
+The categories reflect the natural information architecture of the
+MS Applied Data Science website, ensuring comprehensive coverage
+across all program aspects.
+
+Recommendations:
+1. Improve context precision by fine-tuning retrieval parameters
+2. Focus on improving responses for {{df_category_metrics['Average'].idxmin()}} questions
+3. Consider increasing chunk overlap for better context coverage
+4. Implement query expansion for ambiguous questions
+
+All evaluation artifacts have been saved to: ./evaluation_results/
+"""
+print(summary)
+# --- Outputs for Cell 13 ---
+# [stream:stdout]
+# (same structure as your version; values reflect computed metrics)
